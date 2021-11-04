@@ -1,5 +1,14 @@
 ;Proof of Concept
 ;first commit
+to add-edge
+  let node1 one-of turtles
+  let node2 one-of turtles
+  ask node1 [
+    ifelse link-neighbor? node2 or node1 = node2
+    [add-edge]
+    [create-link-with node2]
+  ]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
