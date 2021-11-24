@@ -5,22 +5,24 @@ turtles-own
 [
   infected?           ;; if true, the turtle is infectious
   resistant?          ;; if true, the turtle can't be infected
+  convinced?
   virus-check-timer   ;; number of ticks since this turtle's last virus-check
 ]
 
+
+;; People are agents that have both inwards and outwards directed links.
 people-own
 [
   believes?
   disbelieves?    ;; CHANGE VARIABLE NAME
 ]
 
+;; Newsies are agents that only have outward directed links, never inwards.
 newsies-own
 [
-  believes?
+  is-source?
 ]
 
-
-;; -------------------------------  REFACTOR CODE BELOW  --------------------------------;;
 
 to setup
   clear-all
@@ -33,37 +35,56 @@ to setup
 end
 
 to setup-nodes
-  set-default-shape turtles "circle"
-  create-turtles number-of-nodes
+  ;; Create people
+  set-default-shape people "circle"
+  create-people number-of-people
   [
     ; for visual reasons, we don't put any nodes *too* close to the edges
     setxy (random-xcor * 0.95) (random-ycor * 0.95)
     become-susceptible
     set virus-check-timer random virus-check-frequency
   ]
+
+  ;; Create newsies
+  set-default-shape newsies "square"
+  create-newsies number-of-newsies
+  [
+    setxy (random-xcor * 0.95) (random-ycor * 0.95)
+    become-susceptible
+  ]
 end
 
+;; -------------------------------  REFACTOR CODE BELOW  --------------------------------;;
+
 to setup-spatially-clustered-network
-  let num-links (average-node-degree * number-of-nodes) / 2
+  let num-links (average-node-degree * number-of-people) / 2
   while [count links < num-links ]
   [
     ask one-of turtles
     [
       let choice (min-one-of (other turtles with [not link-neighbor? myself])
                    [distance myself])
-      if choice != nobody [ create-link-from choice ]
+      ifelse breed = people
+      [
+        if choice != nobody [ create-link-from choice ]
+      ]
+      [
+        if (choice != nobody) and (([ breed ] of choice) = people) [ create-link-to choice ]
+      ]
     ]
   ]
   ; make the network look a little prettier
   repeat 10
   [
-    layout-spring turtles links 0.3 (world-width / (sqrt number-of-nodes)) 1
+    layout-spring turtles links 0.3 (world-width / (sqrt number-of-people)) 1
   ]
 end
 
 to go
-  if all? turtles [not infected?]
+  if all? turtles [(not infected?) or ((infected? and convinced?) or (resistant?))]
     [ stop ]
+  if all? turtles [convinced? or resistant?]
+    [stop ]
   ask turtles
   [
      set virus-check-timer virus-check-timer + 1
@@ -84,6 +105,7 @@ end
 to become-susceptible  ;; turtle procedure
   set infected? false
   set resistant? false
+  set convinced? false
   set color blue
 end
 
@@ -92,6 +114,13 @@ to become-resistant  ;; turtle procedure
   set resistant? true
   set color gray
   ask my-links [ set color gray - 2 ]
+end
+
+to become-convinced ;; turtle procedure
+  set infected? true
+  set resistant? false
+  set convinced? true
+  set color 13
 end
 
 to spread-virus
@@ -104,11 +133,37 @@ end
 to do-virus-checks
   ask turtles with [infected? and virus-check-timer = 0]
   [
-    if random 100 < recovery-chance
+    ifelse ((breed = people) and (not convinced?))
     [
-      ifelse random 100 < gain-resistance-chance
-        [ become-resistant ]
-        [ become-susceptible ]
+      if random 100 < recovery-chance
+      [
+        ifelse random 100 < gain-resistance-chance
+        [
+          become-resistant
+        ]
+        [
+          ifelse random 100 < become-convinced-chance
+          [
+            become-convinced
+          ]
+          [
+            become-susceptible
+          ]
+        ]
+      ]
+    ]
+    [
+      become-convinced
+    ]
+
+  ]
+
+  ;; set newsies not starting with
+  ask turtles with [not infected? and virus-check-timer = 0]
+  [
+    if breed = newsies
+    [
+      become-resistant
     ]
   ]
 end
@@ -240,16 +295,17 @@ true
 "" ""
 PENS
 "susceptible" 1.0 0 -13345367 true "" "plot (count turtles with [not infected? and not resistant?]) / (count turtles) * 100"
-"infected" 1.0 0 -2674135 true "" "plot (count turtles with [infected?]) / (count turtles) * 100"
+"infected" 1.0 0 -2674135 true "" "plot (count turtles with [infected? and not convinced?]) / (count turtles) * 100"
 "resistant" 1.0 0 -7500403 true "" "plot (count turtles with [resistant?]) / (count turtles) * 100"
+"convinced" 1.0 0 -8053223 true "" "plot (count turtles with [convinced?]) / (count turtles) * 100"
 
 SLIDER
 25
 15
 230
 48
-number-of-nodes
-number-of-nodes
+number-of-people
+number-of-people
 10
 300
 150.0
@@ -281,7 +337,7 @@ SLIDER
 initial-outbreak-size
 initial-outbreak-size
 1
-number-of-nodes
+number-of-people
 3.0
 1
 1
@@ -296,7 +352,7 @@ SLIDER
 average-node-degree
 average-node-degree
 1
-number-of-nodes - 1
+number-of-people - 1
 6.0
 1
 1
@@ -312,8 +368,38 @@ news-infection-chance
 news-infection-chance
 0
 100
-50.0
+8.0
 1
+1
+%
+HORIZONTAL
+
+SLIDER
+25
+362
+233
+395
+number-of-newsies
+number-of-newsies
+0
+number-of-people
+0.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+27
+412
+232
+445
+become-convinced-chance
+become-convinced-chance
+0
+10
+5.0
+0.1
 1
 %
 HORIZONTAL
