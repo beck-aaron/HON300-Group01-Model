@@ -23,19 +23,19 @@ end
 to setup-nodes
   set-default-shape people "circle"
   set-default-shape newsies  "star"
+
   create-newsies num_newsies
   [
     set color 15
     set size 5
     setxy (random-xcor * 0.30) (random-ycor * 0.30)
-
   ]
+
   create-people nodes
   [
     set color 95
     set size 3
     setxy (random-xcor * 0.90) (random-ycor * 0.90)
-    ;setxy (random-xcor) (random-ycor)
   ]
 end
 
@@ -61,9 +61,9 @@ to setup-links
     ask one-of turtles
     [
       let choice (min-one-of (other turtles with [not link-neighbor? myself]) [distance myself])
-      if choice != nobody
+      if (choice != nobody and choice != newsies)
       [
-        create-link-to choice
+        create-link-from choice
         [
           set trust random (max_trust)
           set label trust
@@ -72,11 +72,12 @@ to setup-links
 
       ]
     ]
-  ]
-  repeat 10
+  repeat 100
   [
     layout-spring turtles links .5 (world-width / (sqrt nodes)) 1
   ]
+  ]
+
 
 end
 @#$#@#$#@
@@ -133,7 +134,7 @@ nodes
 nodes
 10
 100
-56.0
+10.0
 1
 1
 NIL
@@ -148,7 +149,7 @@ avg_degree
 avg_degree
 5
 nodes - 1
-7.0
+6.0
 1
 1
 NIL
