@@ -21,8 +21,16 @@ end
 ; @param nodes = the number of nodes to generate within the model.
 ;*************************************************************************
 to setup-nodes
-  set-default-shape turtles "circle"
-  create-turtles nodes
+  set-default-shape people "circle"
+  set-default-shape newsies  "star"
+  create-newsies num_newsies
+  [
+    set color 15
+    set size 5
+    setxy (random-xcor * 0.30) (random-ycor * 0.30)
+
+  ]
+  create-people nodes
   [
     set color 95
     set size 3
@@ -39,10 +47,10 @@ end
 ; determine the closest node that has no link to it.  When each link
 ; is created it is given a "trust" value.  This value will help determine
 ; whether or not a given individual will "believe" them.
-
+;
 ; @param avg_degree = the average amount of connections each node has
 ; @param nodes = the number of nodes generated within the model
-
+;
 ; @note this must be called after nodes are generated within the model
 ;*************************************************************************
 to setup-links
@@ -156,6 +164,36 @@ max_trust
 1
 10
 5.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+14
+184
+186
+217
+num_newsies
+num_newsies
+1
+5
+3.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+13
+225
+185
+258
+num_people
+num_people
+1
+nodes - num_newsies
+28.0
 1
 1
 NIL
