@@ -34,7 +34,7 @@ to setup-nodes
   create-people nodes
   [
     set color 95
-    set size 3
+    ifelse nodes > 50 [set size 2] [set size 3]
     setxy (random-xcor * 0.90) (random-ycor * 0.90)
   ]
 end
@@ -56,27 +56,42 @@ end
 to setup-links
   ask links [die]
   let num_links (avg_degree * nodes) / 2
+
   while [count links < num_links]
   [
-    ask one-of turtles
+    ask newsies
     [
-      let choice (min-one-of (other turtles with [not link-neighbor? myself]) [distance myself])
-      if (choice != nobody and choice != newsies)
+      let choice (min-one-of (other people with [not link-neighbor? myself]) [distance myself])
+      if (choice != nobody)
       [
-        create-link-from choice
+        create-link-to choice
         [
           set trust random (max_trust)
           set label trust
           set color gray
         ]
-
       ]
     ]
-  repeat 100
+  ]
+  ask people
   [
-    layout-spring turtles links .5 (world-width / (sqrt nodes)) 1
+    create-links-to other people
+    [
+      set trust random (max_trust)
+      set label trust
+      set color gray
+    ]
   ]
-  ]
+
+
+
+
+  ;repeat 1
+  ;[
+    ;layout-spring turtles links .5 (world-width / (sqrt nodes)) 1
+    ;layout-tutte turtles links 100
+  ;]
+
 
 
 end
@@ -134,7 +149,7 @@ nodes
 nodes
 10
 100
-10.0
+12.0
 1
 1
 NIL
@@ -147,9 +162,9 @@ SLIDER
 136
 avg_degree
 avg_degree
-5
+1
 nodes - 1
-6.0
+1.0
 1
 1
 NIL
