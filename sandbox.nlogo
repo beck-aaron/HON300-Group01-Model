@@ -79,7 +79,7 @@ end
 to setup-links
   ask links [die]
   let counter 0
-  let num_links (avg_degree * num_people) / 2
+  let num_links (avg_person_degree * num_people) / 2
   show num_links
 
   ask newsies
@@ -92,16 +92,16 @@ to setup-links
     ]
   ]
 
-  set counter 0
-  ask people
-  [
-    set counter 0
-    while [counter < person_radius and count links < num_links]
-    [
-      add_link
-      set counter counter + 1
-    ]
-  ]
+  ;set counter 0
+  ;ask people
+  ;[
+   ; set counter 0
+    ;while [counter < person_radius and count links < num_links]
+    ;[
+    ;  add_link
+     ; set counter counter + 1
+    ;]
+  ;]
 
   while [count links < num_links]
   [
@@ -121,6 +121,8 @@ to setup-links
     set color gray
     if visible-trust [set label trust]
   ]
+
+  ;layout-radial turtles links (turtle 0)
 
 end
 
@@ -240,11 +242,11 @@ SLIDER
 63
 187
 96
-avg_degree
-avg_degree
+avg_person_degree
+avg_person_degree
 3
 10
-3.0
+4.0
 1
 1
 NIL
@@ -274,7 +276,7 @@ num_newsies
 num_newsies
 1
 10
-2.0
+3.0
 1
 1
 NIL
@@ -289,7 +291,7 @@ num_people
 num_people
 person_radius
 1000
-403.0
+194.0
 1
 1
 NIL
@@ -304,7 +306,7 @@ news_radius
 news_radius
 1
 num_people
-403.0
+70.0
 1
 1
 NIL
@@ -318,8 +320,8 @@ SLIDER
 person_radius
 person_radius
 1
-(int num_people) / 100
-3.0
+news_radius
+15.0
 1
 1
 NIL
