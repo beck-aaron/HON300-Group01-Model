@@ -8,14 +8,14 @@ links-own     [trust]
 
 globals [nodes]
 
+;; TODO _ MAKE TRUST TOGGLEABLE
+;; TODO - IMPLEMENT SPREAD OF INFORMATION
+
 to setup
   clear-all
   setup-nodes
   setup-links
   reset-ticks
-
-  print count links
-  print count turtles
 end
 
 ;*************************************************************************
@@ -80,7 +80,6 @@ to setup-links
   ask links [die]
   let counter 0
   let num_links (avg_person_degree * num_people) / 2
-  show num_links
 
   ask newsies
   [
@@ -91,17 +90,6 @@ to setup-links
       set counter counter + 1
     ]
   ]
-
-  ;set counter 0
-  ;ask people
-  ;[
-   ; set counter 0
-    ;while [counter < person_radius and count links < num_links]
-    ;[
-    ;  add_link
-     ; set counter counter + 1
-    ;]
-  ;]
 
   while [count links < num_links]
   [
@@ -146,7 +134,7 @@ to add_link
 end
 
 to get_random_trust
-  set trust random(max_trust + 1)
+  set trust random(max_trust_threshold + 1)
 end
 
 to get_distance_trust
@@ -172,6 +160,9 @@ to go
 
 end
 
+to spread_rumors
+end
+
 to broadcast_news
   ask turtles with [believed?]
   [
@@ -179,8 +170,7 @@ to broadcast_news
     [
       ask in-link-from myself
       [
-        show trust
-        if max_trust <= trust
+        if max_trust_threshold <= trust
         [
           ask end2
           [
@@ -240,13 +230,13 @@ NIL
 SLIDER
 15
 63
-187
+194
 96
 avg_person_degree
 avg_person_degree
 3
-10
-4.0
+int num_people / 10
+5.0
 1
 1
 NIL
@@ -255,16 +245,16 @@ HORIZONTAL
 SLIDER
 16
 286
-188
+206
 319
-max_trust
-max_trust
+max_trust_threshold
+max_trust_threshold
+0
 1
-10
-6.0
+0.7
+.1
 1
-1
-NIL
+%
 HORIZONTAL
 
 SLIDER
@@ -275,7 +265,7 @@ SLIDER
 num_newsies
 num_newsies
 1
-10
+int avg_person_degree / 2
 3.0
 1
 1
@@ -291,7 +281,7 @@ num_people
 num_people
 person_radius
 1000
-194.0
+278.0
 1
 1
 NIL
@@ -305,8 +295,8 @@ SLIDER
 news_radius
 news_radius
 1
-num_people
-70.0
+(int num_people) / avg_person_degree
+18.0
 1
 1
 NIL
@@ -320,8 +310,8 @@ SLIDER
 person_radius
 person_radius
 1
-news_radius
-15.0
+avg_person_degree
+5.0
 1
 1
 NIL
@@ -366,7 +356,7 @@ SWITCH
 412
 visible-trust
 visible-trust
-1
+0
 1
 -1000
 
