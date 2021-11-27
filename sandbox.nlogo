@@ -79,12 +79,13 @@ end
 to setup-links
   ask links [die]
   let counter 0
-  let num_links (avg_degree * nodes) / 2
+  let num_links (avg_degree * num_people) / 2
+  show num_links
 
   ask newsies
   [
     set counter 0
-    while [counter < news_radius]
+    while [counter < news_radius and count links < num_links]
     [
       add_link
       set counter counter + 1
@@ -95,7 +96,7 @@ to setup-links
   ask people
   [
     set counter 0
-    while [counter < person_radius]
+    while [counter < person_radius and count links < num_links]
     [
       add_link
       set counter counter + 1
@@ -114,7 +115,6 @@ to setup-links
     ]
   ]
 
-  ;layout-spring turtles links .5 (world-width / (sqrt num_newsies)) 1
   ask links
   [
     set thickness .5
@@ -244,7 +244,7 @@ avg_degree
 avg_degree
 3
 10
-6.0
+3.0
 1
 1
 NIL
@@ -274,7 +274,7 @@ num_newsies
 num_newsies
 1
 10
-3.0
+2.0
 1
 1
 NIL
@@ -289,7 +289,7 @@ num_people
 num_people
 person_radius
 1000
-606.0
+403.0
 1
 1
 NIL
@@ -304,7 +304,7 @@ news_radius
 news_radius
 1
 num_people
-606.0
+403.0
 1
 1
 NIL
