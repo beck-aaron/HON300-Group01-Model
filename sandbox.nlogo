@@ -2,6 +2,8 @@ breed [people person]
 breed [newsies newsy]
 
 turtles-own   [susceptible? believed? resisted? convinced? check-timer]
+
+people-own    [distance_from_news]
 links-own     [trust]
 
 globals [nodes]
@@ -11,8 +13,10 @@ to setup
   setup-nodes
   setup-links
   reset-ticks
-end
 
+  print count links
+  print count turtles
+end
 
 ;*************************************************************************
 ; setup-nodes
@@ -54,6 +58,7 @@ to setup-nodes
     set believed?     false
     set resisted?     false
     set convinced?    false
+    set distance_from_news (min-one-of newsies [distance myself])
   ]
 end
 
@@ -97,8 +102,6 @@ to setup-links
     ]
   ]
 
-  print num_links
-  print count links
   while [count links < num_links]
   [
     ask one-of people
@@ -106,27 +109,17 @@ to setup-links
       let choice one-of (other people with [not link-neighbor? myself])
       if (choice != nobody)
       [
-        create-link-from choice
-        [
-          set trust random (max_trust)
-          set color gray
-        ]
+        create-link-from choice [ get_distance_trust ]
       ]
     ]
   ]
 
-  layout-spring turtles links .5 (world-width / (sqrt num_newsies)) 1
+  ;layout-spring turtles links .5 (world-width / (sqrt num_newsies)) 1
   ask links
   [
     set thickness .5
+    set color gray
     if visible-trust [set label trust]
-    ask end1
-    [
-      let temp distance newsy 0
-      print self
-      ;ask in-link-from self [set trust temp]
-    ]
-    set trust 0
   ]
 
 end
@@ -145,11 +138,23 @@ to add_link
     [
       create-link-to choice
       [
-        set trust random (max_trust + 1)
-        set color gray
+        get_distance_trust
       ]
     ]
 end
+
+to get_random_trust
+  set trust random(max_trust + 1)
+end
+
+to get_distance_trust
+        let temp 0
+        ask other-end [set temp distance other-end]
+        set trust 100 ;; the area of the grid
+        set trust trust - int temp
+        set trust trust / 100
+end
+
 
 to go
   ;if all? turtles [not believed? or not convinced?] [ stop ]
@@ -166,7 +171,7 @@ to go
 end
 
 to broadcast_news
-  ask newsies
+  ask turtles with [believed?]
   [
     ask out-link-neighbors
     [
@@ -239,7 +244,7 @@ avg_degree
 avg_degree
 3
 10
-3.0
+6.0
 1
 1
 NIL
@@ -269,7 +274,7 @@ num_newsies
 num_newsies
 1
 10
-2.0
+3.0
 1
 1
 NIL
@@ -284,7 +289,7 @@ num_people
 num_people
 person_radius
 1000
-3.0
+606.0
 1
 1
 NIL
@@ -298,8 +303,8 @@ SLIDER
 news_radius
 news_radius
 1
-100 / (int num_newsies)
-76.0
+num_people
+606.0
 1
 1
 NIL
@@ -359,7 +364,7 @@ SWITCH
 412
 visible-trust
 visible-trust
-0
+1
 1
 -1000
 
