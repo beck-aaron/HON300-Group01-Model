@@ -1,6 +1,10 @@
 breed [people person]
 breed [newsies newsy]
+
+turtles-own   [susceptible? believed? resisted? convinced?]
 links-own     [trust]
+
+globals [nodes]
 
 to setup
   clear-all
@@ -21,6 +25,7 @@ end
 ; @param nodes = the number of nodes to generate within the model.
 ;*************************************************************************
 to setup-nodes
+  set nodes (num_newsies + num_people)
   set-default-shape people "circle"
   set-default-shape newsies  "star"
 
@@ -28,13 +33,13 @@ to setup-nodes
   [
     set color 15
     set size 5
-    setxy (random-xcor * 0.30) (random-ycor * 0.30)
+    setxy (random-xcor * 0.90) (random-ycor * 0.90)
   ]
 
-  create-people nodes
+  create-people num_people
   [
     set color 95
-    ifelse nodes > 50 [set size 2] [set size 3]
+    ifelse num_people > 500 [set size 1] [set size 2]
     setxy (random-xcor * 0.90) (random-ycor * 0.90)
   ]
 end
@@ -55,45 +60,90 @@ end
 ;*************************************************************************
 to setup-links
   ask links [die]
+  let counter 0
   let num_links (avg_degree * nodes) / 2
 
+  ask newsies
+  [
+    set counter 0
+    while [counter < news_radius]
+    [
+      add_link
+      set counter counter + 1
+    ]
+  ]
+
+  set counter 0
+  ask people
+  [
+    set counter 0
+    while [counter < person_radius]
+    [
+      add_link
+      set counter counter + 1
+    ]
+  ]
+
+  print num_links
+  print count links
   while [count links < num_links]
   [
-    ask newsies
+    ask one-of people
     [
-      let choice (min-one-of (other people with [not link-neighbor? myself]) [distance myself])
+      let choice one-of (other people with [not link-neighbor? myself])
       if (choice != nobody)
       [
-        create-link-to choice
+        create-link-from choice
         [
           set trust random (max_trust)
-          set label trust
+          ;set label trust
           set color gray
         ]
       ]
     ]
   ]
-  ask people
-  [
-    create-links-to other people
+
+  layout-spring turtles links .5 (world-width / (sqrt num_newsies)) 1
+
+end
+
+;*************************************************************************
+; add_link
+;
+; Person finds the closest person that it is not linked to itsef and
+; creates a link to it if possible.  Otherwise, do nothing.
+;
+; @param max_trust = highest trust value possible for a link
+;*************************************************************************
+to add_link
+  let choice (min-one-of (other people with [not link-neighbor? myself]) [distance myself])
+    if (choice != nobody)
     [
-      set trust random (max_trust)
-      set label trust
-      set color gray
+      create-link-to choice
+      [
+        set trust random (max_trust)
+        ;set label trust
+        set color gray
+        ;set size 2
+      ]
     ]
-  ]
+end
 
+to go
+  if all? turtles [not believed? or not convinced?] [ stop ]
 
-
-
-  ;repeat 1
+  ; REFACTOR GO METHOD
+  ;ask turtles
   ;[
-    ;layout-spring turtles links .5 (world-width / (sqrt nodes)) 1
-    ;layout-tutte turtles links 100
+  ;   set virus-check-timer virus-check-timer + 1
+  ;   if virus-check-timer >= virus-check-frequency
+  ;     [ set virus-check-timer 0 ]
   ;]
+  ;spread-virus
+  ;do-virus-checks
 
-
-
+  ; REFACTOR ABOVE  ^
+  tick
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -125,9 +175,9 @@ ticks
 
 BUTTON
 15
-24
+17
 81
-57
+50
 Setup
 setup
 NIL
@@ -145,11 +195,26 @@ SLIDER
 63
 187
 96
-nodes
-nodes
+avg_degree
+avg_degree
+3
 10
-100
-12.0
+4.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+16
+286
+188
+319
+max_trust
+max_trust
+1
+10
+7.0
 1
 1
 NIL
@@ -157,43 +222,13 @@ HORIZONTAL
 
 SLIDER
 15
-103
+108
 187
-136
-avg_degree
-avg_degree
-1
-nodes - 1
-1.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-15
-145
-187
-178
-max_trust
-max_trust
+141
+num_newsies
+num_newsies
 1
 10
-5.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-14
-184
-186
-217
-num_newsies
-num_newsies
-1
-5
 3.0
 1
 1
@@ -201,19 +236,66 @@ NIL
 HORIZONTAL
 
 SLIDER
-13
-225
-185
-258
+16
+153
+188
+186
 num_people
 num_people
 1
-nodes - num_newsies
-28.0
+1000
+313.0
 1
 1
 NIL
 HORIZONTAL
+
+SLIDER
+16
+197
+188
+230
+news_radius
+news_radius
+1
+100 / (int num_newsies)
+30.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+16
+241
+189
+274
+person_radius
+person_radius
+1
+(int num_people) / 100
+3.0
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+96
+17
+179
+50
+Go/Stop
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
