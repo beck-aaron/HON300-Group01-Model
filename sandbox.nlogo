@@ -1,7 +1,7 @@
 breed [people person]
 breed [newsies newsy]
 
-turtles-own   [susceptible? believed? resisted? convinced?]
+turtles-own   [susceptible? believed? resisted? convinced? check-timer]
 links-own     [trust]
 
 globals [nodes]
@@ -34,13 +34,26 @@ to setup-nodes
     set color 15
     set size 5
     setxy (random-xcor * 0.90) (random-ycor * 0.90)
+    set susceptible?  false
+    set believed?     true
+    set resisted?     false
+    set convinced?    true
   ]
 
   create-people num_people
   [
     set color 95
-    ifelse num_people > 500 [set size 1] [set size 2]
+    if num_people < 1000 [set size 1]
+    if num_people < 500  [set size 2]
+    if num_people < 100  [set size 3]
+
+
+
     setxy (random-xcor * 0.90) (random-ycor * 0.90)
+    set susceptible?  true
+    set believed?     false
+    set resisted?     false
+    set convinced?    false
   ]
 end
 
@@ -96,7 +109,6 @@ to setup-links
         create-link-from choice
         [
           set trust random (max_trust)
-          ;set label trust
           set color gray
         ]
       ]
@@ -104,6 +116,18 @@ to setup-links
   ]
 
   layout-spring turtles links .5 (world-width / (sqrt num_newsies)) 1
+  ask links
+  [
+    set thickness .5
+    if visible-trust [set label trust]
+    ask end1
+    [
+      let temp distance newsy 0
+      print self
+      ;ask in-link-from self [set trust temp]
+    ]
+    set trust 0
+  ]
 
 end
 
@@ -121,29 +145,45 @@ to add_link
     [
       create-link-to choice
       [
-        set trust random (max_trust)
-        ;set label trust
+        set trust random (max_trust + 1)
         set color gray
-        ;set size 2
       ]
     ]
 end
 
 to go
-  if all? turtles [not believed? or not convinced?] [ stop ]
+  ;if all? turtles [not believed? or not convinced?] [ stop ]
 
-  ; REFACTOR GO METHOD
-  ;ask turtles
-  ;[
-  ;   set virus-check-timer virus-check-timer + 1
-  ;   if virus-check-timer >= virus-check-frequency
-  ;     [ set virus-check-timer 0 ]
-  ;]
-  ;spread-virus
-  ;do-virus-checks
+  ask turtles
+  [
+    set check-timer check-timer + 1
+    if check-timer >= check-timer-frequency [set check-timer 0]
+  ]
 
-  ; REFACTOR ABOVE  ^
+  broadcast_news
   tick
+
+end
+
+to broadcast_news
+  ask newsies
+  [
+    ask out-link-neighbors
+    [
+      ask in-link-from myself
+      [
+        show trust
+        if max_trust <= trust
+        [
+          ask end2
+          [
+            set believed? true
+            set color 45
+          ]
+        ]
+      ]
+    ]
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -176,7 +216,7 @@ ticks
 BUTTON
 15
 17
-81
+96
 50
 Setup
 setup
@@ -199,7 +239,7 @@ avg_degree
 avg_degree
 3
 10
-4.0
+3.0
 1
 1
 NIL
@@ -214,7 +254,7 @@ max_trust
 max_trust
 1
 10
-7.0
+6.0
 1
 1
 NIL
@@ -229,7 +269,7 @@ num_newsies
 num_newsies
 1
 10
-3.0
+2.0
 1
 1
 NIL
@@ -242,9 +282,9 @@ SLIDER
 186
 num_people
 num_people
-1
+person_radius
 1000
-313.0
+3.0
 1
 1
 NIL
@@ -259,7 +299,7 @@ news_radius
 news_radius
 1
 100 / (int num_newsies)
-30.0
+76.0
 1
 1
 NIL
@@ -281,13 +321,13 @@ NIL
 HORIZONTAL
 
 BUTTON
-96
+104
 17
-179
+187
 50
 Go/Stop
 go
-NIL
+T
 1
 T
 OBSERVER
@@ -296,6 +336,43 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+16
+332
+189
+365
+check-timer-frequency
+check-timer-frequency
+0
+1
+0.7
+.1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+16
+379
+149
+412
+visible-trust
+visible-trust
+0
+1
+-1000
+
+SWITCH
+15
+420
+149
+453
+distance-trust
+distance-trust
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
