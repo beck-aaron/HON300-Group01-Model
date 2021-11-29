@@ -1,7 +1,7 @@
 breed [people person]
 breed [newsies newsy]
 
-turtles-own   [susceptible? believed? resisted? convinced? check-timer]
+turtles-own   [susceptible? believed? resisted? convinced? check-timer heard_the_news?]
 
 people-own    [distance_from_news]
 links-own     [trust]
@@ -16,6 +16,21 @@ to setup
   setup-nodes
   setup-links
   reset-ticks
+end
+
+to go
+  update-agent-timer
+  ;print "updated timer"
+  spread_news
+  tick
+end
+
+to update-agent-timer
+  ask people
+  [
+    set check-timer check-timer + .1
+    if check-timer >= check-timer-frequency [set check-timer 0]
+  ]
 end
 
 ;*************************************************************************
@@ -35,13 +50,14 @@ to setup-nodes
 
   create-newsies num_newsies
   [
-    set color 15
+    set color 13
     set size 5
     setxy (random-xcor * 0.90) (random-ycor * 0.90)
     set susceptible?  false
     set believed?     true
     set resisted?     false
     set convinced?    true
+    set heard_the_news? true
   ]
 
   create-people num_people
@@ -58,7 +74,9 @@ to setup-nodes
     set believed?     false
     set resisted?     false
     set convinced?    false
+    set heard_the_news? false
     set distance_from_news (min-one-of newsies [distance myself])
+    ;set label who
   ]
 end
 
@@ -86,20 +104,30 @@ to setup-links
     set counter 0
     while [counter < news_radius and count links < num_links]
     [
-      add_link
+      add_link_to
       set counter counter + 1
     ]
   ]
+
 
   while [count links < num_links]
   [
     ask one-of people
     [
-      let choice one-of (other people with [not link-neighbor? myself])
-      if (choice != nobody)
+      set counter 0
+      while [counter < person_radius]
       [
-        create-link-from choice [ get_distance_trust ]
+        add_link_from
+        set counter counter + 1
+        add_link_to
+        set counter counter + 1
       ]
+
+      ;let choice one-of (other people with [not link-neighbor? myself])
+      ;if (choice != nobody );and count out-link-neighbors < person_radius)
+      ;[
+        ;create-link-to choice [ get_distance_trust ]
+      ;]
     ]
   ]
 
@@ -115,79 +143,184 @@ to setup-links
 end
 
 ;*************************************************************************
-; add_link
+; add_link_to
 ;
 ; Person finds the closest person that it is not linked to itsef and
 ; creates a link to it if possible.  Otherwise, do nothing.
 ;
 ; @param max_trust = highest trust value possible for a link
 ;*************************************************************************
-to add_link
+to add_link_to
   let choice (min-one-of (other people with [not link-neighbor? myself]) [distance myself])
     if (choice != nobody)
     [
       create-link-to choice
       [
-        get_distance_trust
+        ifelse distance-trust [get_distance_trust][get_random_trust]
+      ]
+    ]
+end
+to add_link_from
+  let choice (min-one-of (other people with [not link-neighbor? myself]) [distance myself])
+    if (choice != nobody)
+    [
+      create-link-from choice
+      [
+        ifelse distance-trust [get_distance_trust][get_random_trust]
       ]
     ]
 end
 
 to get_random_trust
-  set trust random(max_trust_threshold + 1)
+  set trust precision random-float 1 2
 end
 
 to get_distance_trust
-        let temp 0
-        ask other-end [set temp distance other-end]
-        set trust 100 ;; the area of the grid
-        set trust trust - int temp
-        set trust trust / 100
+  let temp 0
+  ask other-end [set temp distance other-end]
+  set trust 100 ;; the area of the grid
+  set trust trust - int temp
+  set trust trust / 100
 end
 
 
-to go
-  ;if all? turtles [not believed? or not convinced?] [ stop ]
 
-  ask turtles
+to become-resistant  ;; turtle procedure
+  set resisted? true
+  set believed? false
+  set convinced? false
+  set susceptible? false
+  set color green
+  ask my-links [ set color gray - 2 ]
+end
+
+to become-believer  ;; turtle procedure
+  set believed? true
+  set convinced? false
+  set resisted? false
+  set susceptible? true
+  set heard_the_news? true
+  set color yellow
+end
+
+to become-convinced  ;; turtle procedure
+  set believed? true
+  set convinced? true
+  set resisted? false
+  set susceptible? false
+  set color red
+end
+
+to become-susceptible  ;; turtle procedure
+  set susceptible? true
+  set believed? false
+  set resisted? false
+  set convinced? false
+  set color 95
+end
+
+to spread_belief
+
+  if count people with [believed? and susceptible? and heard_the_news?] > 0  ;; yellow dots exist
   [
-    set check-timer check-timer + 1
-    if check-timer >= check-timer-frequency [set check-timer 0]
-  ]
-
-  broadcast_news
-  tick
-
-end
-
-to spread_rumors
-end
-
-to broadcast_news
-  ask turtles with [believed?]
-  [
-    ask out-link-neighbors
+    ask one-of people with [believed? and susceptible?]  ;; ask one of the yellow dots
     [
-      ask in-link-from myself
+      ask out-link-neighbors with [not believed? and susceptible?]  ;; yellow dot's blue neighbors
       [
-        if max_trust_threshold <= trust
+        ask in-link-from myself
         [
-          ask end2
+          if max_trust_threshold <= trust
           [
-            set believed? true
-            set color 45
+            ask end2 [become-believer] ;; convince blue neighbor to turn yellow
           ]
         ]
       ]
+      ifelse susceptible? and random 100 < become-convinced-chance [become-convinced]
+      [
+        if random 100 < gain-resistance-chance [become-susceptible]
+      ]
     ]
+  ]
+
+  if count people with [convinced?] > 0  ;; red dots exist
+  [
+    ask one-of people with [convinced?] ;; ask one of the red dots
+    [
+      if count out-link-neighbors with [not believed? and susceptible?] > 0
+      [
+        ask out-link-neighbors with [not believed? and susceptible?]  ;; red dot's blue neighbors
+        [
+          ask in-link-from myself
+          [
+            if max_trust_threshold <= trust [ ask end2 [ become-believer ] ]
+          ]
+        ]
+      ]
+      if change-stubborn-minds and random 100 < recovery-chance [ become-believer print "becoming beleiver"]
+    ]
+  ]
+end
+
+to spread_disbelief
+
+  if count people with [not believed? and susceptible? and heard_the_news?] > 0   ;; blue dots exist that have heard the news
+  [
+    ;; only blue or green dots can spread disbelief
+    ask one-of people with [not believed? and heard_the_news?]  ;; asking blue dot
+    [
+      ask out-link-neighbors with [believed? and susceptible?]  ;; blue dot's yellow neighbors
+      [
+        ask in-link-from myself
+        [
+          if max_trust_threshold <= trust
+          [
+            ask end2 [become-susceptible] ;; convince yellow neighbor to turn blue
+          ]
+        ]
+      ]
+      if random 100 < gain-resistance-chance [ become-resistant ]  ;; change blue to green
+    ]
+  ]
+
+  if count people with [resisted?] > 0
+  [
+    ask one-of people with [resisted?]  ;; asking green dots
+    [
+      ask out-link-neighbors with [believed? and susceptible?]  ;; green dot's yellow neighbors
+      [
+        ask in-link-from myself
+        [
+          if max_trust_threshold <= trust [ ask end2 [become-susceptible] ]   ;; convince yellow neighbor to turn blue
+        ]
+      ]
+      if change-stubborn-minds and random 100 < become-convinced-chance [ become-susceptible ]     ;; change green to blue
+    ]
+  ]
+end
+
+to spread_news
+  ask newsies
+  [
+    ask out-link-neighbors with [not believed? and susceptible?]
+    [
+      ask in-link-from myself
+      [
+        if max_trust_threshold <= trust and myself != nobody
+        [
+          ask end2 [ become-believer ]
+        ]
+      ]
+    ]
+    spread_disbelief
+    spread_belief
   ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-205
-10
-652
-458
+369
+15
+816
+463
 -1
 -1
 4.35
@@ -204,8 +337,8 @@ GRAPHICS-WINDOW
 50
 -50
 50
-0
-0
+1
+1
 1
 ticks
 30.0
@@ -236,7 +369,7 @@ avg_person_degree
 avg_person_degree
 3
 int num_people / 10
-5.0
+10.0
 1
 1
 NIL
@@ -245,13 +378,13 @@ HORIZONTAL
 SLIDER
 16
 286
-206
+188
 319
 max_trust_threshold
 max_trust_threshold
 0
 1
-0.7
+0.2
 .1
 1
 %
@@ -266,7 +399,7 @@ num_newsies
 num_newsies
 1
 int avg_person_degree / 2
-3.0
+5.0
 1
 1
 NIL
@@ -281,7 +414,7 @@ num_people
 num_people
 person_radius
 1000
-278.0
+1000.0
 1
 1
 NIL
@@ -296,7 +429,7 @@ news_radius
 news_radius
 1
 (int num_people) / avg_person_degree
-18.0
+50.0
 1
 1
 NIL
@@ -343,7 +476,7 @@ check-timer-frequency
 check-timer-frequency
 0
 1
-0.7
+0.5
 .1
 1
 NIL
@@ -356,7 +489,7 @@ SWITCH
 412
 visible-trust
 visible-trust
-0
+1
 1
 -1000
 
@@ -367,9 +500,83 @@ SWITCH
 453
 distance-trust
 distance-trust
-1
+0
 1
 -1000
+
+SLIDER
+203
+62
+364
+95
+recovery-chance
+recovery-chance
+0
+100
+50.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+201
+110
+370
+143
+gain-resistance-chance
+gain-resistance-chance
+0
+100
+50.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+200
+155
+367
+188
+become-convinced-chance
+become-convinced-chance
+0
+100
+50.0
+1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+200
+199
+365
+232
+change-stubborn-minds
+change-stubborn-minds
+0
+1
+-1000
+
+PLOT
+889
+186
+1089
+336
+plot 1
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count turtles"
 
 @#$#@#$#@
 ## WHAT IS IT?
