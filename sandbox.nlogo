@@ -256,7 +256,7 @@ to spread_belief
           ]
         ]
       ]
-      if change-stubborn-minds and random 100 < recovery-chance [ become-believer print "becoming beleiver"]
+      if change-stubborn-minds and random 100 < recovery-chance [ become-believer ]
     ]
   ]
 end
@@ -384,7 +384,7 @@ max_trust_threshold
 max_trust_threshold
 0
 1
-0.2
+0.5
 .1
 1
 %
@@ -500,7 +500,7 @@ SWITCH
 453
 distance-trust
 distance-trust
-0
+1
 1
 -1000
 
@@ -556,27 +556,30 @@ SWITCH
 232
 change-stubborn-minds
 change-stubborn-minds
-0
+1
 1
 -1000
 
 PLOT
-889
-186
-1089
-336
-plot 1
-NIL
-NIL
+832
+152
+1199
+446
+Percent of states of nodes over time
+time
+% of nodes
 0.0
-10.0
+60.0
 0.0
-10.0
+50.0
 true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot count turtles"
+"believers" 1.0 0 -1184463 true "" "plot ((count people with [believed?]) / num_people) * 100"
+"disbelievers" 1.0 0 -8990512 true "" "plot ((count people with [not believed? and susceptible?]) / num_people) * 100"
+"convinced" 1.0 0 -2674135 true "" "plot ((count people with [convinced?]) / num_people) * 100"
+"resistant" 1.0 0 -13840069 true "" "plot ((count people with [resisted?]) / num_people) * 100"
 
 @#$#@#$#@
 ## WHAT IS IT?
