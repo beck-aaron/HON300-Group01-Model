@@ -8,8 +8,6 @@ links-own     [trust]
 
 globals [nodes]
 
-;; TODO _ MAKE TRUST TOGGLEABLE
-;; TODO - IMPLEMENT SPREAD OF INFORMATION
 
 to setup
   clear-all
@@ -20,7 +18,6 @@ end
 
 to go
   update-agent-timer
-  ;print "updated timer"
   spread_news
   tick
 end
@@ -109,7 +106,6 @@ to setup-links
     ]
   ]
 
-
   while [count links < num_links]
   [
     ask one-of people
@@ -122,12 +118,6 @@ to setup-links
         add_link_to
         set counter counter + 1
       ]
-
-      ;let choice one-of (other people with [not link-neighbor? myself])
-      ;if (choice != nobody );and count out-link-neighbors < person_radius)
-      ;[
-        ;create-link-to choice [ get_distance_trust ]
-      ;]
     ]
   ]
 
@@ -138,8 +128,6 @@ to setup-links
     if visible-trust [set label trust]
   ]
 
-  ;layout-radial turtles links (turtle 0)
-
 end
 
 ;*************************************************************************
@@ -147,8 +135,6 @@ end
 ;
 ; Person finds the closest person that it is not linked to itsef and
 ; creates a link to it if possible.  Otherwise, do nothing.
-;
-; @param max_trust = highest trust value possible for a link
 ;*************************************************************************
 to add_link_to
   let choice (min-one-of (other people with [not link-neighbor? myself]) [distance myself])
@@ -160,6 +146,13 @@ to add_link_to
       ]
     ]
 end
+
+;*************************************************************************
+; add_link_from
+;
+; Person finds the closest person that it is not linked to itsef and
+; creates a link from it if possible.  Otherwise, do nothing.
+;*************************************************************************
 to add_link_from
   let choice (min-one-of (other people with [not link-neighbor? myself]) [distance myself])
     if (choice != nobody)
@@ -171,10 +164,21 @@ to add_link_from
     ]
 end
 
+;*************************************************************************
+; get_random_trust
+;
+; Generates a random float between 1 with a precision of 2 figures.
+;*************************************************************************
 to get_random_trust
   set trust precision random-float 1 2
 end
 
+;*************************************************************************
+; get_distance_trust
+;
+; Generates a "trust" value by subtracting the distance from one node to
+; another by 100.
+;*************************************************************************
 to get_distance_trust
   let temp 0
   ask other-end [set temp distance other-end]
@@ -182,8 +186,6 @@ to get_distance_trust
   set trust trust - int temp
   set trust trust / 100
 end
-
-
 
 to become-resistant  ;; turtle procedure
   set resisted? true
@@ -293,7 +295,7 @@ to spread_disbelief
           if max_trust_threshold <= trust [ ask end2 [become-susceptible] ]   ;; convince yellow neighbor to turn blue
         ]
       ]
-      if change-stubborn-minds and random 100 < become-convinced-chance [ become-susceptible ]     ;; change green to blue
+      if change-stubborn-minds and random 100 < recovery-chance [ become-susceptible ]     ;; change green to blue
     ]
   ]
 end
@@ -369,7 +371,7 @@ avg_person_degree
 avg_person_degree
 3
 int num_people / 10
-10.0
+27.0
 1
 1
 NIL
@@ -399,7 +401,7 @@ num_newsies
 num_newsies
 1
 int avg_person_degree / 2
-5.0
+2.0
 1
 1
 NIL
@@ -414,7 +416,7 @@ num_people
 num_people
 person_radius
 1000
-1000.0
+695.0
 1
 1
 NIL
@@ -429,7 +431,7 @@ news_radius
 news_radius
 1
 (int num_people) / avg_person_degree
-50.0
+77.0
 1
 1
 NIL
@@ -444,7 +446,7 @@ person_radius
 person_radius
 1
 avg_person_degree
-5.0
+3.0
 1
 1
 NIL
@@ -556,7 +558,7 @@ SWITCH
 232
 change-stubborn-minds
 change-stubborn-minds
-1
+0
 1
 -1000
 
@@ -576,7 +578,7 @@ true
 false
 "" ""
 PENS
-"believers" 1.0 0 -1184463 true "" "plot ((count people with [believed?]) / num_people) * 100"
+"believers" 1.0 0 -1184463 true "" "plot ((count people with [believed? and susceptible?]) / num_people) * 100"
 "disbelievers" 1.0 0 -8990512 true "" "plot ((count people with [not believed? and susceptible?]) / num_people) * 100"
 "convinced" 1.0 0 -2674135 true "" "plot ((count people with [convinced?]) / num_people) * 100"
 "resistant" 1.0 0 -13840069 true "" "plot ((count people with [resisted?]) / num_people) * 100"
@@ -584,27 +586,27 @@ PENS
 @#$#@#$#@
 ## WHAT IS IT?
 
-(a general understanding of what the model is trying to show or explain)
+Our model shows how disinformation spreads on a random network of individuals. The network is weighted and directed. We are looking at how different factors affect how fast, or how many people get “infected” with the misinformation. One of the main factors that we were curious about was perceived trustworthiness. This is because we want to see if people of power, or a high degree of perceived trustworthiness, were able to push misinformation to more people and convert more people to believe the information. 
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+Our model is a modified SIR model in which individuals get “infected” with misinformation. When an individual receives the news there is a chance in whether they believe the information or not. The information flows on the directed network with a chance that the person who is hearing the message will convert to believing the message, or if they disbelieve the message. The people agents are between four states: convinced, not heard or disbelieve, heard or believe, and resistant. These four states are a juxtaposition since they are sort of fighting to have their side believed.  
 
 ## HOW TO USE IT
 
-(how to use the model, including a description of each of the items in the Interface tab)
+To first set up the model use the slider to choose the number of newsies and the number of people. The more newsies, the more places the news begins to spread from. Also, adjust the average number of connections each person has, that way the network can spread to more people quicker or slower, depending on how many links each person has. The change mind parameter makes it so individuals will never change their mind, and thus simplifies the model. The chance of susceptibility is the chance that someone believes the misinformation they are hearing. 
 
 ## THINGS TO NOTICE
 
-(suggested things for the user to notice while running the model)
+When running the model there are two main outcomes too look out for. Either the model settles into a stable pattern or fluctuates between two separate states, with people flipping back and forth between believing and not believing.  
 
 ## THINGS TO TRY
 
-(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
+Try shifting the sliders to affect how the disinformation spreads over the connected network. Try adding more newsies to see if the information gets spread faster or if individuals become resistant faster since they are bombarded with news. 
 
 ## EXTENDING THE MODEL
 
-(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
+To extend the model, we could make it so convinced individuals spread to everyone as they are convinced of the information. The people who just believe it could spread it to a smaller number of people since they are less sure of the information but still want to spread. 
 
 ## NETLOGO FEATURES
 
@@ -612,11 +614,13 @@ PENS
 
 ## RELATED MODELS
 
-(models in the NetLogo Models Library and elsewhere which are of related interest)
+Inspired by Virus on a network by Stonedahl, F. and Wilensky, U.
 
-## CREDITS AND REFERENCES
+## CITED SOURCES
 
-(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+Stonedahl, F. and Wilensky, U. (2008). NetLogo Virus on a Network model. http://ccl.northwestern.edu/netlogo/models/VirusonaNetwork. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
+
+Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 @#$#@#$#@
 default
 true
